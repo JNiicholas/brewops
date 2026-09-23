@@ -185,8 +185,7 @@ main {
   color: var(--ink-soft);
 }
 
-.filter-bar input[type="date"],
-.preset {
+.filter-bar input[type="date"] {
   padding: 0.6rem 0.7rem;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
@@ -203,13 +202,14 @@ main {
 }
 
 .preset {
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
   font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
-  border: none;
   background: #fff;
   color: var(--brass-deep);
-  box-shadow: none;
   transition: all 0.12s ease;
 }
 
