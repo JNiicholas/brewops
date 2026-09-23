@@ -76,6 +76,17 @@ header {
   box-shadow: var(--shadow);
 }
 
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.bean-icon {
+  flex: none;
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.3));
+}
+
 header h1 {
   margin: 0;
   font-family: var(--serif);

@@ -8,7 +8,19 @@
 </head>
 <body>
   <header>
-    <h1>BrewOps</h1>
+    <div class="brand">
+      <svg class="bean-icon" viewBox="0 0 40 56" width="34" height="34" role="img" aria-label="Coffee bean">
+        <defs>
+          <linearGradient id="bean-grad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="var(--crema)" />
+            <stop offset="100%" stop-color="var(--brass-deep)" />
+          </linearGradient>
+        </defs>
+        <path d="M20 2C10 2 4 14 4 28c0 14 6 26 16 26s16-12 16-26C36 14 30 2 20 2Z" fill="url(#bean-grad)" />
+        <path d="M20 6C14 16 26 20 20 28C14 36 26 40 20 50" fill="none" stroke="var(--roast)" stroke-width="3" stroke-linecap="round" />
+      </svg>
+      <h1>BrewOps</h1>
+    </div>
     <p class="tagline">Office coffee fleet — telemetry &amp; operations</p>
   </header>
 
