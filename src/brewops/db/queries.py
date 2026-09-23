@@ -129,12 +129,23 @@ def get_machine_health(conn: sqlite3.Connection, machine_id: int) -> dict[str, A
     ]
     specialty = conn.execute(
         """
-        SELECT dt.label
+        SELECT dt.label, COUNT(*) AS count
         FROM brew_events b
         JOIN drink_types dt ON dt.name = b.drink_type
         WHERE b.machine_id = ?
         GROUP BY b.drink_type
         ORDER BY COUNT(*) DESC, dt.name
+        LIMIT 1
+        """,
+        (machine_id,),
+    ).fetchone()
+    busiest_day = conn.execute(
+        """
+        SELECT DATE(timestamp) AS day, COUNT(*) AS count
+        FROM brew_events
+        WHERE machine_id = ?
+        GROUP BY day
+        ORDER BY count DESC, day
         LIMIT 1
         """,
         (machine_id,),
@@ -145,4 +156,7 @@ def get_machine_health(conn: sqlite3.Connection, machine_id: int) -> dict[str, A
         "last_maintenance": dict(last_maintenance) if last_maintenance else None,
         "recent_errors": recent_errors,
         "specialty": specialty["label"] if specialty else None,
+        "specialty_count": specialty["count"] if specialty else None,
+        "busiest_day": busiest_day["day"] if busiest_day else None,
+        "busiest_day_count": busiest_day["count"] if busiest_day else None,
     }
