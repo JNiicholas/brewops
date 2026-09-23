@@ -219,6 +219,7 @@ async function setupFilter() {
         filter.end = endDate;
       }
 
+      presetButtons.forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
       messageEl.textContent = "";
       messageEl.className = "message";
