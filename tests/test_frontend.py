@@ -66,3 +66,11 @@ def test_filter_bar_in_html(db):
     assert 'id="filter-message"' in r.text
     assert 'id="total-label"' in r.text
     assert 'id="last-day-label"' in r.text
+
+
+def test_export_csv_link_in_html(db):
+    r = request(get_app(), "GET", "/")
+    assert r.status == 200
+    assert 'id="export-csv"' in r.text
+    assert 'href="/api/brews/export.csv"' in r.text
+    assert r.text.count('class="preset"') == 3

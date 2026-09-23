@@ -1,12 +1,14 @@
 """FastAPI app: JSON API + static frontend, one process, port 8123."""
 
+import csv
+import io
 import sqlite3
 from contextlib import asynccontextmanager, closing
 from datetime import datetime
 from pathlib import Path
 
 import uvicorn
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -142,6 +144,32 @@ def log_maintenance(event: MaintenanceIn, conn: sqlite3.Connection = Depends(get
     )
     conn.commit()
     return {"id": event_id, "status": "logged"}
+
+
+CSV_COLUMNS = ("timestamp", "machine", "drink", "duration_s", "temp_c", "source")
+
+
+@app.get("/api/brews/export.csv")
+def export_brews_csv(start: str | None = None, end: str | None = None, conn: sqlite3.Connection = Depends(get_db)):
+    start, end = parse_range(start, end)
+    rows = queries.get_brew_events(conn, start, end)
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(CSV_COLUMNS)
+    for row in rows:
+        writer.writerow(["" if row[c] is None else row[c] for c in CSV_COLUMNS])
+
+    if start and end:
+        name = f"brews_{start}_to_{end}.csv"
+    elif start:
+        name = f"brews_from_{start}.csv"
+    elif end:
+        name = f"brews_until_{end}.csv"
+    else:
+        name = "brews.csv"
+
+    body = ("﻿" + buf.getvalue()).encode("utf-8")
+    return Response(content=body, media_type="text/csv; charset=utf-8", headers={"Content-Disposition": f'attachment; filename="{name}"'})
 
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"

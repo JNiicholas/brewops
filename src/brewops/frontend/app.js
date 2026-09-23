@@ -228,6 +228,17 @@ async function setupFilter() {
       });
     });
   });
+
+  const exportLink = document.getElementById("export-csv");
+  exportLink.addEventListener("click", (event) => {
+    if (filter.start && filter.end && filter.start > filter.end) {
+      event.preventDefault();
+      messageEl.textContent = "From date must not be after To date.";
+      messageEl.className = "message error";
+      return;
+    }
+    exportLink.href = "/api/brews/export.csv" + rangeQuery();
+  });
 }
 
 async function setupForms() {

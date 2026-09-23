@@ -182,3 +182,66 @@ def test_machine_health_start_after_end_error(db):
 def test_machine_health_unknown_machine_with_range(db):
     r = request(app, "GET", "/api/machines/999?start=2026-06-01&end=2026-06-02")
     assert r.status == 404
+
+
+def test_export_brews_csv_basic(db):
+    r = request(app, "GET", "/api/brews/export.csv")
+    assert r.status == 200
+    assert r.headers.get("content-type", "").startswith("text/csv")
+    assert "attachment" in r.headers.get("content-disposition", "")
+    assert "brews.csv" in r.headers.get("content-disposition", "")
+    assert r.body.startswith(b"\xef\xbb\xbf")
+
+    import csv, io
+    content = r.body.decode("utf-8-sig")
+    reader = csv.reader(io.StringIO(content))
+    rows = list(reader)
+    assert rows[0] == ["timestamp", "machine", "drink", "duration_s", "temp_c", "source"]
+    assert len(rows) == 4
+
+
+def test_export_brews_csv_with_range(db):
+    r = request(app, "GET", "/api/brews/export.csv?start=2026-06-02&end=2026-06-02")
+    assert r.status == 200
+    assert "brews_2026-06-02_to_2026-06-02.csv" in r.headers.get("content-disposition", "")
+
+    import csv, io
+    content = r.body.decode("utf-8-sig")
+    reader = csv.reader(io.StringIO(content))
+    rows = list(reader)
+    assert len(rows) == 2
+
+
+def test_export_brews_csv_empty_range(db):
+    r = request(app, "GET", "/api/brews/export.csv?start=2030-01-01&end=2030-01-02")
+    assert r.status == 200
+
+    import csv, io
+    content = r.body.decode("utf-8-sig")
+    reader = csv.reader(io.StringIO(content))
+    rows = list(reader)
+    assert len(rows) == 1
+    assert rows[0] == ["timestamp", "machine", "drink", "duration_s", "temp_c", "source"]
+
+
+def test_export_brews_csv_reversed_range(db):
+    r = request(app, "GET", "/api/brews/export.csv?start=2026-06-05&end=2026-06-01")
+    assert r.status == 400
+    assert "start must not be after end" in r.json()["detail"]
+
+
+def test_export_brews_csv_malformed_date(db):
+    r = request(app, "GET", "/api/brews/export.csv?start=nope")
+    assert r.status == 400
+
+
+def test_export_brews_csv_start_only(db):
+    r = request(app, "GET", "/api/brews/export.csv?start=2026-06-02")
+    assert r.status == 200
+    assert "brews_from_2026-06-02.csv" in r.headers.get("content-disposition", "")
+
+
+def test_export_brews_csv_end_only(db):
+    r = request(app, "GET", "/api/brews/export.csv?end=2026-06-01")
+    assert r.status == 200
+    assert "brews_until_2026-06-01.csv" in r.headers.get("content-disposition", "")

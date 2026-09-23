@@ -71,3 +71,7 @@ useful for pointing tests or a second instance at a different file.
   (`YYYY-MM-DD`) query params for date-range filtering of brew-derived metrics
   (`total_brews`, `per_drink`, `per_day`, `brew_count`, `last_brew`, `specialty`,
   `busiest_day`). Maintenance/error data is deliberately not date-filtered.
+- `GET /api/brews/export.csv` downloads raw brew events (brews only, not
+  maintenance) as UTF-8-with-BOM CSV for Excel. It honours the same optional
+  inclusive `start`/`end` (`YYYY-MM-DD`) params; days without brews produce no
+  rows.

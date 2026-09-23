@@ -2,6 +2,7 @@ import pytest
 
 from brewops.db.connection import connect
 from brewops.db.queries import (
+    get_brew_events,
     get_drink_types,
     get_machine_health,
     get_machines,
@@ -195,3 +196,56 @@ def test_machine_health_maintenance_not_filtered(conn):
     health = get_machine_health(conn, 4, start="2026-06-01", end="2026-06-05")
     assert health["brew_count"] == 1
     assert health["last_maintenance"]["type"] == "descale"
+
+
+def test_get_brew_events_basic(conn):
+    insert_brew(conn, 1, "espresso", "2026-06-01 08:00:00", 27.0, 92.0, "csv")
+    insert_brew(conn, 1, "espresso", "2026-06-01 09:00:00", 26.0, 91.5, "csv")
+    insert_brew(conn, 2, "latte", "2026-06-02 10:00:00", 44.0, 88.0, "csv")
+    conn.commit()
+
+    events = get_brew_events(conn)
+    assert len(events) == 3
+    for event in events:
+        assert set(event.keys()) == {"timestamp", "machine", "drink", "duration_s", "temp_c", "source"}
+    assert events[0]["timestamp"] == "2026-06-01 08:00:00"
+    assert events[0]["drink"] == "Espresso"
+    assert events[0]["machine"] in ("Bertha (3rd floor)", "Old Faithful (2nd floor)")
+
+
+def test_get_brew_events_with_range(conn):
+    insert_brew(conn, 1, "espresso", "2026-05-31 08:00:00", 27.0, 92.0, "csv")
+    insert_brew(conn, 1, "espresso", "2026-06-01 08:00:00", 27.0, 92.0, "csv")
+    insert_brew(conn, 1, "espresso", "2026-06-02 09:00:00", 26.0, 91.5, "csv")
+    conn.commit()
+
+    events = get_brew_events(conn, start="2026-06-01", end="2026-06-02")
+    assert len(events) == 2
+
+
+def test_get_brew_events_boundary_inclusive(conn):
+    insert_brew(conn, 1, "espresso", "2026-06-01 23:59:59", 27.0, 92.0, "csv")
+    insert_brew(conn, 2, "latte", "2026-06-02 00:00:00", 44.0, 88.0, "csv")
+    conn.commit()
+
+    events = get_brew_events(conn, start="2026-06-01", end="2026-06-01")
+    assert len(events) == 1
+    assert events[0]["timestamp"] == "2026-06-01 23:59:59"
+
+
+def test_get_brew_events_empty_range(conn):
+    insert_brew(conn, 1, "espresso", "2026-06-01 08:00:00", 27.0, 92.0, "csv")
+    conn.commit()
+
+    events = get_brew_events(conn, start="2026-06-05", end="2026-06-10")
+    assert events == []
+
+
+def test_get_brew_events_null_duration_and_temp(conn):
+    insert_brew(conn, 1, "espresso", "2026-06-01 08:00:00", None, None, "manual")
+    conn.commit()
+
+    events = get_brew_events(conn)
+    assert len(events) == 1
+    assert events[0]["duration_s"] is None
+    assert events[0]["temp_c"] is None

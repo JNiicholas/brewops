@@ -144,6 +144,24 @@ def get_stats(conn: sqlite3.Connection, start: str | None = None, end: str | Non
     return {"total_brews": total, "per_drink": per_drink, "per_day": per_day, "start": start, "end": end}
 
 
+def get_brew_events(conn: sqlite3.Connection, start: str | None = None, end: str | None = None) -> list[dict[str, Any]]:
+    """Raw brew events for export. Returns all brews (no summary)."""
+    clause, params = _range_clause(start, end, column="be.timestamp")
+    rows = conn.execute(
+        f"""
+        SELECT be.timestamp, m.name AS machine, dt.label AS drink,
+               be.duration_s, be.temp_c, be.source
+        FROM brew_events be
+        JOIN machines m ON m.id = be.machine_id
+        JOIN drink_types dt ON dt.name = be.drink_type
+        WHERE 1=1{clause}
+        ORDER BY be.timestamp, be.id
+        """,
+        params
+    )
+    return [dict(r) for r in rows]
+
+
 def get_machine_health(conn: sqlite3.Connection, machine_id: int, start: str | None = None, end: str | None = None) -> dict[str, Any] | None:
     """Machine card: brew activity plus maintenance history."""
     machine = get_machine(conn, machine_id)

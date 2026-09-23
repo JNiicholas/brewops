@@ -229,6 +229,26 @@ main {
   border-color: var(--brass-deep);
 }
 
+.export-link {
+  display: inline-block;
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--brass-deep);
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.export-link:hover {
+  border-color: var(--brass);
+  color: var(--brass);
+}
+
+.export-link:focus-visible {
+  outline: 3px solid rgb(185 129 47 / 0.5);
+  outline-offset: 2px;
+}
+
 .timeline-empty {
   fill: var(--ink-soft);
   font-size: 0.92rem;
