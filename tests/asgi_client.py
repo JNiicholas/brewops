@@ -22,15 +22,21 @@ class Response:
 
 def request(app, method: str, path: str, body: dict | None = None) -> Response:
     payload = json.dumps(body).encode() if body is not None else b""
+    if "?" in path:
+        path_part, query_part = path.split("?", 1)
+        query_string = query_part.encode()
+    else:
+        path_part = path
+        query_string = b""
     scope = {
         "type": "http",
         "asgi": {"version": "3.0"},
         "http_version": "1.1",
         "method": method.upper(),
         "scheme": "http",
-        "path": path,
-        "raw_path": path.encode(),
-        "query_string": b"",
+        "path": path_part,
+        "raw_path": path_part.encode(),
+        "query_string": query_string,
         "root_path": "",
         "headers": [
             (b"host", b"testserver"),

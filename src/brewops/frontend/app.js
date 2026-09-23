@@ -11,6 +11,16 @@ async function fetchJSON(url, options) {
 
 // ---- dashboard ----
 
+const filter = { start: "", end: "" };
+
+function rangeQuery() {
+  const p = new URLSearchParams();
+  if (filter.start) p.set("start", filter.start);
+  if (filter.end) p.set("end", filter.end);
+  const s = p.toString();
+  return s ? `?${s}` : "";
+}
+
 function renderDrinkBars(perDrink) {
   const container = document.getElementById("drink-bars");
   container.innerHTML = "";
@@ -26,13 +36,35 @@ function renderDrinkBars(perDrink) {
   }
 }
 
-function renderTimeline(perDay) {
+function renderTimeline(perDay, filtered) {
   const svg = document.getElementById("timeline");
   svg.innerHTML = "";
-  if (perDay.length === 0) return;
   const width = 600;
   const height = 130;
-  const max = Math.max(...perDay.map((d) => d.count));
+
+  if (perDay.length === 0) {
+    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    text.setAttribute("x", width / 2);
+    text.setAttribute("y", height / 2);
+    text.setAttribute("text-anchor", "middle");
+    text.setAttribute("class", "timeline-empty");
+    text.textContent = filtered ? "No brews in this range" : "No brews yet";
+    svg.appendChild(text);
+    return;
+  }
+
+  const max = Math.max(1, ...perDay.map((d) => d.count));
+
+  if (perDay.every((d) => d.count === 0)) {
+    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    text.setAttribute("x", width / 2);
+    text.setAttribute("y", height / 2);
+    text.setAttribute("text-anchor", "middle");
+    text.setAttribute("class", "timeline-empty");
+    text.textContent = "No brews in this range";
+    svg.appendChild(text);
+  }
+
   const barWidth = width / perDay.length;
   perDay.forEach((day, i) => {
     const barHeight = (day.count / max) * (height - 10);
@@ -49,7 +81,7 @@ function renderTimeline(perDay) {
   });
 }
 
-function renderMachineCards(healths) {
+function renderMachineCards(healths, filtered) {
   const container = document.getElementById("machine-cards");
   container.innerHTML = "";
   for (const m of healths) {
@@ -63,12 +95,17 @@ function renderMachineCards(healths) {
           .map((e) => `${e.error_code || "?"} (${e.timestamp.slice(0, 10)})`)
           .join(", ")}</p>`
       : "";
+    const brewCountText = filtered
+      ? `${m.brew_count} brews in range`
+      : `${m.brew_count} brews`;
+    const noBrewsText = filtered ? "no brews in range" : "no brews yet";
+    const specialtyText = filtered ? "no specialty in range" : "no specialty yet";
     card.innerHTML = `
       <h3 title="${m.name}">${m.name}</h3>
       <p class="badge">${m.has_telemetry ? "telemetry" : "manual log"}</p>
-      <p>${m.brew_count} brews · last ${m.last_brew ? m.last_brew.slice(0, 16) : "never"}</p>
-      <p>Busiest day: ${m.busiest_day ? `${m.busiest_day} (${m.busiest_day_count} brews)` : "no brews yet"}</p>
-      <p>Specialty: ${m.specialty ? `${m.specialty} (${m.specialty_count} brews)` : "no specialty yet"}</p>
+      <p>${brewCountText} · last ${m.last_brew ? m.last_brew.slice(0, 16) : "never"}</p>
+      <p>Busiest day: ${m.busiest_day ? `${m.busiest_day} (${m.busiest_day_count} brews)` : noBrewsText}</p>
+      <p>Specialty: ${m.specialty ? `${m.specialty} (${m.specialty_count} brews)` : specialtyText}</p>
       <p>Last maintenance: ${maintenance}</p>
       ${errors}`;
     container.appendChild(card);
@@ -76,17 +113,32 @@ function renderMachineCards(healths) {
 }
 
 async function loadDashboard() {
-  const stats = await fetchJSON("/api/stats");
+  const stats = await fetchJSON("/api/stats" + rangeQuery());
   document.getElementById("total-brews").textContent = stats.total_brews;
   const lastDay = stats.per_day[stats.per_day.length - 1];
   document.getElementById("brews-today").textContent = lastDay ? lastDay.count : 0;
+
+  const filtered = filter.start || filter.end;
+  const totalLabel = filtered ? "brews in range" : "brews total";
+  const lastDayLabel = filtered ? "brews on last day of range" : "brews on last active day";
+  document.getElementById("total-label").textContent = totalLabel;
+  document.getElementById("last-day-label").textContent = lastDayLabel;
+
   renderDrinkBars(stats.per_drink);
-  renderTimeline(stats.per_day);
+  renderTimeline(stats.per_day, filtered);
 
   const machines = await fetchJSON("/api/machines");
   document.getElementById("machine-count").textContent = machines.length;
-  const healths = await Promise.all(machines.map((m) => fetchJSON(`/api/machines/${m.id}`)));
-  renderMachineCards(healths);
+  const healths = await Promise.all(machines.map((m) => fetchJSON(`/api/machines/${m.id}${rangeQuery()}`)));
+  renderMachineCards(healths, filtered);
+
+  if (stats.total_brews === 0 && filtered) {
+    document.getElementById("filter-message").textContent = "No brews in this range.";
+    document.getElementById("filter-message").className = "message";
+  } else {
+    document.getElementById("filter-message").textContent = "";
+    document.getElementById("filter-message").className = "message";
+  }
 }
 
 // ---- forms ----
@@ -105,6 +157,77 @@ function fillSelect(select, items, valueKey, labelKey) {
     option.textContent = item[labelKey];
     select.appendChild(option);
   }
+}
+
+async function setupFilter() {
+  const startInput = document.getElementById("filter-start");
+  const endInput = document.getElementById("filter-end");
+  const messageEl = document.getElementById("filter-message");
+  const presetButtons = document.querySelectorAll(".preset");
+
+  function updateFilterFromInputs() {
+    filter.start = startInput.value;
+    filter.end = endInput.value;
+
+    messageEl.textContent = "";
+    messageEl.className = "message";
+
+    if (filter.start && filter.end && filter.start > filter.end) {
+      messageEl.textContent = "From date must not be after To date.";
+      messageEl.className = "message error";
+      return;
+    }
+
+    presetButtons.forEach((btn) => btn.classList.remove("active"));
+    loadDashboard().catch((error) => {
+      messageEl.textContent = error.message;
+      messageEl.className = "message error";
+    });
+  }
+
+  startInput.addEventListener("change", () => {
+    presetButtons.forEach((btn) => btn.classList.remove("active"));
+    updateFilterFromInputs();
+  });
+
+  endInput.addEventListener("change", () => {
+    presetButtons.forEach((btn) => btn.classList.remove("active"));
+    updateFilterFromInputs();
+  });
+
+  presetButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const days = btn.dataset.days;
+
+      if (days === "all") {
+        startInput.value = "";
+        endInput.value = "";
+        filter.start = "";
+        filter.end = "";
+      } else {
+        const today = new Date();
+        today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
+        const endDate = today.toISOString().slice(0, 10);
+        const startDate = new Date(today);
+        startDate.setDate(startDate.getDate() - (parseInt(days) - 1));
+        startDate.setMinutes(startDate.getMinutes() - startDate.getTimezoneOffset());
+        const startDateStr = startDate.toISOString().slice(0, 10);
+
+        startInput.value = startDateStr;
+        endInput.value = endDate;
+        filter.start = startDateStr;
+        filter.end = endDate;
+      }
+
+      btn.classList.add("active");
+      messageEl.textContent = "";
+      messageEl.className = "message";
+      loadDashboard().catch((error) => {
+        messageEl.textContent = error.message;
+        messageEl.className = "message error";
+      });
+    });
+  });
 }
 
 async function setupForms() {
@@ -158,4 +281,5 @@ loadDashboard().catch((error) => {
   document.getElementById("total-brews").textContent = "!";
   console.error("Dashboard failed to load:", error);
 });
+setupFilter().catch((error) => console.error("Filter setup failed:", error));
 setupForms().catch((error) => console.error("Form setup failed:", error));

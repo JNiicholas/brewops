@@ -118,3 +118,67 @@ def test_post_maintenance(db):
         "timestamp": "2026-06-06 09:00:00",
     })
     assert r.status == 400
+
+
+def test_stats_with_date_range(db):
+    r = request(app, "GET", "/api/stats?start=2026-06-01&end=2026-06-02")
+    assert r.status == 200
+    stats = r.json()
+    assert stats["total_brews"] == 3
+    assert stats["start"] == "2026-06-01"
+    assert stats["end"] == "2026-06-02"
+
+
+def test_stats_with_start_only(db):
+    r = request(app, "GET", "/api/stats?start=2026-06-02")
+    assert r.status == 200
+    stats = r.json()
+    assert stats["total_brews"] == 1
+    assert stats["start"] == "2026-06-02"
+    assert stats["end"] is None
+
+
+def test_stats_with_end_only(db):
+    r = request(app, "GET", "/api/stats?end=2026-06-01")
+    assert r.status == 200
+    stats = r.json()
+    assert stats["total_brews"] == 2
+
+
+def test_stats_start_after_end_error(db):
+    r = request(app, "GET", "/api/stats?start=2026-06-05&end=2026-06-01")
+    assert r.status == 400
+    assert "start must not be after end" in r.json()["detail"]
+
+
+def test_stats_malformed_date(db):
+    r = request(app, "GET", "/api/stats?start=06/01/2026")
+    assert r.status == 400
+    assert "unparsable start" in r.json()["detail"]
+    assert "expected YYYY-MM-DD" in r.json()["detail"]
+
+
+def test_stats_empty_string_param(db):
+    r = request(app, "GET", "/api/stats?start=&end=2026-06-01")
+    assert r.status == 200
+    stats = r.json()
+    assert stats["total_brews"] == 2
+    assert stats["start"] is None
+
+
+def test_machine_health_with_date_range(db):
+    r = request(app, "GET", "/api/machines/1?start=2026-06-01&end=2026-06-01")
+    assert r.status == 200
+    health = r.json()
+    assert health["brew_count"] == 2
+
+
+def test_machine_health_start_after_end_error(db):
+    r = request(app, "GET", "/api/machines/1?start=2026-06-05&end=2026-06-01")
+    assert r.status == 400
+    assert "start must not be after end" in r.json()["detail"]
+
+
+def test_machine_health_unknown_machine_with_range(db):
+    r = request(app, "GET", "/api/machines/999?start=2026-06-01&end=2026-06-02")
+    assert r.status == 404

@@ -67,3 +67,7 @@ useful for pointing tests or a second instance at a different file.
   pattern when adding fields instead of introducing a new shape.
 - Rejected CSV rows are collected, not fatal — an ingest run reports
   `(file, line, reason)` for each bad row and still loads the good ones.
+- `/api/stats` and `/api/machines/{id}` accept optional inclusive `start`/`end`
+  (`YYYY-MM-DD`) query params for date-range filtering of brew-derived metrics
+  (`total_brews`, `per_drink`, `per_day`, `brew_count`, `last_brew`, `specialty`,
+  `busiest_day`). Maintenance/error data is deliberately not date-filtered.

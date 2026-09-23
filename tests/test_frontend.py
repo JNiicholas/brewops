@@ -52,3 +52,17 @@ def test_frontend_has_no_external_resources():
             content = content.replace(a, "")
         assert "http://" not in content, f.name
         assert "https://" not in content, f.name
+
+
+def test_filter_bar_in_html(db):
+    r = request(get_app(), "GET", "/")
+    assert r.status == 200
+    assert 'id="filter-start"' in r.text
+    assert 'id="filter-end"' in r.text
+    assert 'class="preset"' in r.text
+    assert 'data-days="7"' in r.text
+    assert 'data-days="30"' in r.text
+    assert 'data-days="all"' in r.text
+    assert 'id="filter-message"' in r.text
+    assert 'id="total-label"' in r.text
+    assert 'id="last-day-label"' in r.text

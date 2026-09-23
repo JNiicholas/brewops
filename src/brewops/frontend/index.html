@@ -27,14 +27,25 @@
   <main>
     <!-- Zone 1: dashboard -->
     <section id="dashboard">
+      <div class="panel filter-bar" id="date-filter">
+        <label for="filter-start">From</label>
+        <input type="date" id="filter-start">
+        <label for="filter-end">To</label>
+        <input type="date" id="filter-end">
+        <button type="button" class="preset" data-days="7">Last 7 days</button>
+        <button type="button" class="preset" data-days="30">Last 30 days</button>
+        <button type="button" class="preset" data-days="all">All time</button>
+        <p id="filter-message" class="message" role="status"></p>
+      </div>
+
       <div class="stat-tiles">
         <div class="tile">
           <span class="tile-number" id="total-brews">–</span>
-          <span class="tile-label">brews total</span>
+          <span class="tile-label" id="total-label">brews total</span>
         </div>
         <div class="tile">
           <span class="tile-number" id="brews-today">–</span>
-          <span class="tile-label">brews on last active day</span>
+          <span class="tile-label" id="last-day-label">brews on last active day</span>
         </div>
         <div class="tile">
           <span class="tile-number" id="machine-count">–</span>

@@ -168,6 +168,72 @@ main {
   box-shadow: var(--shadow);
 }
 
+/* filter bar */
+.filter-bar {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.filter-bar label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+
+.filter-bar input[type="date"],
+.preset {
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  color: var(--ink);
+  background: #fff;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.filter-bar input[type="date"]:focus {
+  outline: none;
+  border-color: var(--brass);
+  box-shadow: 0 0 0 3px rgb(185 129 47 / 0.22);
+}
+
+.preset {
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: #fff;
+  color: var(--brass-deep);
+  box-shadow: none;
+  transition: all 0.12s ease;
+}
+
+.preset:hover {
+  border-color: var(--brass);
+  color: var(--brass);
+}
+
+.preset:focus-visible {
+  outline: 3px solid rgb(185 129 47 / 0.5);
+  outline-offset: 2px;
+}
+
+.preset.active {
+  background: linear-gradient(135deg, var(--brass), var(--brass-deep));
+  color: #fff8ee;
+  border-color: var(--brass-deep);
+}
+
+.timeline-empty {
+  fill: var(--ink-soft);
+  font-size: 0.92rem;
+}
+
 /* section eyebrow: small-caps label with a brass tick */
 .panel h2 {
   display: flex;
